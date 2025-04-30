@@ -40,6 +40,11 @@ model Account {
   @@map("accounts")
 }
 
+enum AccountType {
+  CURRENT
+  SAVINGS
+}
+
 model Transaction {
   id                String            @id @default(uuid())
   type              TransactionType
@@ -78,10 +83,6 @@ model Budget {
   @@map("budgets")
 }
 
-enum AccountType {
-  SAVING
-  CURRENT
-}
 
 enum TransactionType {
   INCOME

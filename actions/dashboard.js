@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/prisma";
-import { auth } from ("@clerk/nextjs/server");
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 const serializeTransaction = (obj) => {
@@ -13,13 +13,13 @@ const serializeTransaction = (obj) => {
 
 export default async function CreateAccount(data) {
     try {
-        const { userId } = new auth();
+        const { userId } = await auth();
         if (!userId)
             throw new Error("Unauthorized!!");
 
         const user = await db.user.findUnique({
             where: {
-                clerkUserId: user.id,
+                clerkUserId: userId,
             }
         });
 
@@ -27,7 +27,7 @@ export default async function CreateAccount(data) {
             throw new Error("User Not found!!");
 
         const balanceFloat = parseFloat(data.balance);
-        if (NaN(balanceFloat))
+        if (isNaN(balanceFloat))
             throw new Error("Invalid Account Balanace");
 
         const exixtingAccounts = await db.account.findMany({

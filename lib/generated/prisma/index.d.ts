@@ -39,8 +39,8 @@ export type Budget = $Result.DefaultSelection<Prisma.$BudgetPayload>
  */
 export namespace $Enums {
   export const AccountType: {
-  SAVING: 'SAVING',
-  CURRENT: 'CURRENT'
+  CURRENT: 'CURRENT',
+  SAVINGS: 'SAVINGS'
 };
 
 export type AccountType = (typeof AccountType)[keyof typeof AccountType]
