@@ -9,6 +9,11 @@ const serializeTransaction = (obj) => {
 
     if (serialized.balance)
         serialized.balance = obj.balance.toNumber();
+
+    if (serialized.amount)
+        serialized.amount = obj.balance.toNumber();
+
+    return serialized;
 }
 
 export default async function CreateAccount(data) {
@@ -60,5 +65,41 @@ export default async function CreateAccount(data) {
 
     } catch (error) {
         throw new Error(error.message);
+    }
+}
+
+export const getAccounts = async () => {
+    try {
+        const { userId } = await auth();
+        if (!userId)
+            throw new Error("Unauthorized!!");
+
+        const user = await db.user.findUnique({
+            where: {
+                clerkUserId: userId,
+            }
+        });
+
+        if (!user)
+            throw new Error("User Not found!!");
+
+        const accounts = await db.account.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: "desc" },
+            include: {
+                _count: {
+                    select: {
+                        transactions: true
+                    },
+                },
+            },
+        })
+
+        const serializeAccount = accounts.map(serializeTransaction);
+
+        return serializeAccount;
+
+    } catch (error) {
+        console.log(error);
     }
 }

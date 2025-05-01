@@ -18,6 +18,7 @@ const Header = async () => {
                         height={60}
                         width={200}
                         className='h-15 w-auto object-contain'
+                        alt='SpendSmart Logo'
                     />
                 </Link>
                 <div className='flex items-center space-x-2'>
