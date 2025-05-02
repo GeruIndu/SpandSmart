@@ -1,27 +1,36 @@
 "use client"
 
+import { bulkDeleteTransactions } from '@/actions/account'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { categoryColors } from '@/data/categories'
+import useFetch from '@/hooks/use-fetch'
 import { format } from 'date-fns'
-import { ChevronDown, ChevronUp, Clock, MoreHorizontal, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clock, MoreHorizontal, RefreshCw, Search, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { BarLoader } from 'react-spinners'
+import { toast } from 'sonner'
 
 const TransactionTable = ({ transactions }) => {
 
     const router = useRouter();
-    const filteredTransactions = transactions;
 
     const [selectedIds, setSelectedIds] = useState([]);
     const [sortConfig, setSortConfig] = useState({
         field: 'date',
         direction: 'desc'
     })
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [typeFilter, setTypeFilter] = useState("");
+    const [reccuringFilter, setReccuringFilter] = useState("");
 
     const RECCURING_INTERVALS = {
         DAILY: 'Daily',
@@ -37,9 +46,171 @@ const TransactionTable = ({ transactions }) => {
         }))
     }
 
+    const handleChecked = (id) => {
+        setSelectedIds(current => (
+            current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+        ));
+    }
+
+    const handleAllChecked = () => {
+        setSelectedIds(current => (
+            current.length === filteredTransactions.length ? [] : filteredTransactions.map(transaction => transaction.id)
+        ))
+    }
+    const filteredTransactions = useMemo(() => {
+        let result = [...transactions];
+
+        // Apply on searchTerm 
+        if (searchTerm) {
+            const seachLower = searchTerm.toLowerCase();
+            result = result.filter((transaction) => {
+                return transaction.description?.toLowerCase()?.includes(seachLower);
+            })
+        }
+
+        // Type filter
+        if (typeFilter) {
+            result = result.filter((transaction) => (
+                transaction.type === typeFilter
+            ))
+        }
+
+        // Reccuring Filters 
+        if (reccuringFilter) {
+            result = result.filter((transaction) => {
+                if (reccuringFilter === 'reccuring')
+                    return transaction.isReccuring;
+                return !transaction.isReccuring;
+            })
+        }
+
+        // Sort
+        result.sort((a, b) => {
+            let comparison = 0;
+
+            switch (sortConfig.field) {
+                case 'date':
+                    comparison = new Date(a.date) - new Date(b.date);
+                    break;
+                case 'category':
+                    comparison = a.category.localeCompare(b.category);
+                    break;
+                case 'amount':
+                    comparison = a.amount - b.amount;
+                    break;
+                default:
+                    comparison = 0;
+            }
+            return (sortConfig.direction === 'asc') ? comparison : -comparison;
+        })
+
+        return result;
+    }, [transactions, searchTerm, reccuringFilter, typeFilter, sortConfig]);
+
+    const {
+        loading: deleteLoading,
+        fn: deleteFn,
+        data: deleted,
+        error
+    } = useFetch(bulkDeleteTransactions);
+
+    const handleBulkDeleted = async () => {
+        if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} transactions`)) {
+            return;
+        }
+        deleteFn(selectedIds)
+    }
+
+    useEffect(() => {
+        if (deleted?.success && !deleteLoading)
+            toast.success("Transactions deleted successfully.");
+    }, [deleteLoading, deleted])
+
+    useEffect(() => {
+        if (error)
+            toast.error(error);
+    }, [error])
+
+    const handleClearFilters = () => {
+        setReccuringFilter("");
+        setSearchTerm("");
+        setSelectedIds([]);
+        setTypeFilter("");
+    }
+
     return (
         <div className='space-y-4'>
             {/* Filter Section */}
+
+            {
+                deleteLoading && <BarLoader className='mt-4' width={'100%'} color='#9333ea' />
+            }
+            <div className='flex flex-col sm:flex-row gap-4'>
+                <div className='relative flex-1'>
+                    <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+                    <Input
+                        placeholder="Search Transactions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className={'pl-8'}
+                    />
+                </div>
+
+                <div className='flex gap-3'>
+                    <Select
+                        value={typeFilter}
+                        onValueChange={(value) => setTypeFilter(value)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="INCOME">Income</SelectItem>
+                            <SelectItem value="EXPENSE">Expense</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+
+                    <Select
+                        value={reccuringFilter}
+                        onValueChange={(value) => setReccuringFilter(value)}
+                    >
+                        <SelectTrigger className='w-[160px]'>
+                            <SelectValue placeholder="All Transactions" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="reccuring">Reccuring Only</SelectItem>
+                            <SelectItem value="non-reccuring">Non-reccuring Only</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {
+                        selectedIds.length > 0 && <div>
+                            <Button
+                                variant='destructive'
+                                size='sm'
+                                onClick={handleBulkDeleted}
+                            >
+                                Delete Selected ({selectedIds.length})
+                            </Button>
+                        </div>
+                    }
+
+                    {
+                        (selectedIds.length > 0 || searchTerm || typeFilter || reccuringFilter) && (
+                            <Button
+                                variant='outline'
+                                size='icon'
+                                onClick={handleClearFilters}
+                                title='Clear Filters'
+                            >
+                                <X className='h-4 w-4' />
+                            </Button>
+                        )
+                    }
+                </div>
+            </div>
+
 
             {/* Transaction Data */}
             <div className='rounded-md border'>
@@ -47,7 +218,12 @@ const TransactionTable = ({ transactions }) => {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[50px]">
-                                <Checkbox />
+                                <Checkbox
+                                    onCheckedChange={handleAllChecked}
+                                    checked={
+                                        selectedIds.length === filteredTransactions.length && selectedIds.length > 0
+                                    }
+                                />
                             </TableHead>
                             <TableHead
                                 className="cursor-pointer"
@@ -108,7 +284,10 @@ const TransactionTable = ({ transactions }) => {
                                 filteredTransactions.map((transaction) => (
                                     <TableRow key={transaction.id}>
                                         <TableCell>
-                                            <Checkbox />
+                                            <Checkbox
+                                                onCheckedChange={() => handleChecked(transaction.id)}
+                                                checked={selectedIds.includes(transaction.id)}
+                                            />
                                         </TableCell>
                                         <TableCell>{format(new Date(transaction.date), 'PP')}</TableCell>
                                         <TableCell>{transaction.description}</TableCell>
@@ -170,17 +349,17 @@ const TransactionTable = ({ transactions }) => {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuLabel
+                                                    <DropdownMenuItem
                                                         className={'cursor-pointer'}
                                                         onClick={() => router.push(`/transaction/create?edit=${transaction.id}`)}
-                                                    >Edit</DropdownMenuLabel>
+                                                    >Edit</DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         className={'text-destructive'}
+                                                        onClick={() => deleteFn([transaction.id])}
                                                     >Delete</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-
                                         </TableCell>
                                     </TableRow>
                                 ))

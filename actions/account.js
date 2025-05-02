@@ -87,6 +87,72 @@ export const fetchAllTransaction = async (accountId) => {
         }
 
     } catch (error) {
+        console.log(error.message);
 
+    }
+}
+
+export const bulkDeleteTransactions = async (transactionIds) => {
+    try {
+        const { userId } = await auth();
+        if (!userId)
+            throw new Error("Unauthorized!!");
+
+        const user = await db.user.findUnique({
+            where: {
+                clerkUserId: userId,
+            }
+        });
+
+        if (!user)
+            throw new Error("User Not found!!");
+
+        const transactions = await db.transaction.findMany({
+            where: {
+                id: { in: transactionIds },
+                userId: user.id
+            }
+        });
+
+        const accountBalanceChanges = transactions.reduce((acc, transaction) => {
+            const amount = parseFloat(transaction.amount);
+            if (isNaN(amount)) return acc;
+
+            const change = transaction.type === "EXPENSE"
+                ? amount
+                : -amount;
+
+            acc[transaction.accountId] = (acc[transaction.accountId] || 0) + change;
+            return acc;
+        }, {});
+
+
+        await db.$transaction(async (tx) => {
+            await tx.transaction.deleteMany({
+                where: {
+                    id: { in: transactionIds },
+                    userId: user.id
+                }
+            });
+
+            for (const [accountId, balanceChanges] of Object.entries(accountBalanceChanges)) {
+                await tx.account.update({
+                    where: { id: accountId },
+                    data: {
+                        balance: {
+                            increment: balanceChanges
+                        },
+                    },
+                });
+            }
+        })
+
+        revalidatePath('/dashboard');
+        revalidatePath(`/account/${accountId}`, 'page');
+
+        return { success: true };
+    } catch (error) {
+        console.log(error);
+        return { success: false, error: error.message };
     }
 }
