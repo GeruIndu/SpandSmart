@@ -119,11 +119,13 @@ const TransactionTable = ({ transactions }) => {
             return;
         }
         deleteFn(selectedIds)
+        setSelectedIds([]);
     }
 
     useEffect(() => {
-        if (deleted?.success && !deleteLoading)
+        if (deleted && !deleteLoading) {
             toast.success("Transactions deleted successfully.");
+        }
     }, [deleteLoading, deleted])
 
     useEffect(() => {
