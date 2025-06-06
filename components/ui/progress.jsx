@@ -12,8 +12,6 @@ function Progress({
   ...props
 }) {
 
-  console.log(extraStyles);
-
   return (
     <ProgressPrimitive.Root
       data-slot="progress"

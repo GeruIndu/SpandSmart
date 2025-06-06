@@ -17,7 +17,7 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
         initialBudget?.amount?.toString() || ""
     )
 
-    const percentUsed = Number(initialBudget.amount) ? (Number(currentExpenses) / Number(initialBudget.amount)) * 100 : 0;
+    const percentUsed = Number(initialBudget?.amount) ? (Number(currentExpenses) / Number(initialBudget?.amount)) * 100 : 0;
 
     const {
         fn: updateBudgetFn,

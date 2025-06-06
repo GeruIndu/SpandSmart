@@ -10,7 +10,6 @@ export default function EmailTemplate({
     if (type === "monthly-report") {
 
     }
-
     else if (type === "budget-alert") {
         return (
             < Html >
@@ -24,7 +23,7 @@ export default function EmailTemplate({
                         <Heading style={styles.title}>Budget Alert</Heading>
                         <Text style={styles.text}>Hello {username},</Text>
                         <Text style={styles.text}>
-                            You&rsquo;ve used {data?.percentageUsed.toFixed(2)}% of your monthly budget.
+                            You&rsquo;ve used {data?.percentageUsed?.toFixed(2)}% of your monthly budget.
                         </Text>
 
                         <Section style={styles.statsContainer}>
@@ -34,11 +33,11 @@ export default function EmailTemplate({
                             </div>
                             <div style={styles.stat}>
                                 <Text style={styles.text}>Spent So Far</Text>
-                                <Text style={styles.heading}>${data?.totalExpenses.toFixed(2)}</Text>
+                                <Text style={styles.heading}>${data?.totalExpenses}</Text>
                             </div>
                             <div style={styles.stat}>
                                 <Text style={styles.text}>Remaining</Text>
-                                <Text style={styles.heading}>${data?.budgetAmount?.toFixed(2) - data?.totalExpenses?.toFixed(2)}</Text>
+                                <Text style={styles.heading}>${data?.budgetAmount - data?.totalExpenses}</Text>
                             </div>
                         </Section>
                     </Container>
