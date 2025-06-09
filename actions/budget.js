@@ -28,13 +28,13 @@ export const getCurrentBudget = async (accountId) => {
         const currentDate = new Date();
         const startOfTheMonth = new Date(
             currentDate.getFullYear(),
-            currentDate.getMonth() - 1,
+            currentDate.getMonth(),
             1
         );
 
         const endOfTheMonth = new Date(
             currentDate.getFullYear(),
-            currentDate.getMonth(),
+            currentDate.getMonth() + 1,
             0
         );
 

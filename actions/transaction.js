@@ -1,5 +1,7 @@
+"use server"
+
 import { db } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/dist/types/server";
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 const serializeAmount = (obj) => {
@@ -45,7 +47,7 @@ export const createTransaction = async (data) => {
                 data: {
                     ...data,
                     userId: user.id,
-                    nextRecurringDate: data.isReccuring && reccuringInterval ? calculateNextReccuringData(data.date, reccuringInterval) : null,
+                    nextRecurringDate: data.isReccuring && data.reccuringInterval ? calculateNextReccuringData(data.date, data.reccuringInterval) : null,
 
                 }
             });

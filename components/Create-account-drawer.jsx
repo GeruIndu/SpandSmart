@@ -76,7 +76,7 @@ const CreateAccountDrawer = ({ children }) => {
                                 onValueChange={(value) => setValue("type", value)}
                                 defaultValues={watch("type")}
                             >
-                                <SelectTrigger id='type'>
+                                <SelectTrigger id='type' className={'w-full'}>
                                     <SelectValue placeholder="Select Type" />
                                 </SelectTrigger>
                                 <SelectContent>
