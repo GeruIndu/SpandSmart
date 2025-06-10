@@ -49,7 +49,8 @@ const AddTransactionForm = ({ accounts, categories }) => {
     const {
         data: transactionData,
         loading: transactionLoading,
-        fn: transactionFn
+        fn: transactionFn,
+        error
     } = useFetch(createTransaction);
 
     const onSubmit = (data) => {
@@ -68,6 +69,11 @@ const AddTransactionForm = ({ accounts, categories }) => {
         }
 
     }, [transactionData, transactionLoading]);
+
+    useEffect(() => {
+        if (error)
+            toast.error(error);
+    }, [error])
 
     return (
         <form className='space-y-5' onSubmit={handleSubmit(onSubmit)}>

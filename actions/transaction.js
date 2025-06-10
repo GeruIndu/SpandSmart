@@ -1,6 +1,8 @@
 "use server"
 
+import aj from "@/lib/arcjet";
 import { db } from "@/lib/prisma";
+import { request } from "@arcjet/next";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -17,7 +19,31 @@ export const createTransaction = async (data) => {
         if (!userId)
             throw new Error("Unauthorized!!");
 
-        // Arcjet to add rate limiting
+        // Arcjet to add rate limiting  
+        // Get request data for arcjet
+        const req = await request();
+
+        // Check rate data
+        const decision = await aj.protect(req, {
+            userId,
+            requested: 1,  // Specify how many process to consume
+        })
+
+        if (decision.isDenied()) {
+            if (decision.reason.isRateLimit()) {
+                const { remaining, reset } = decision.reason;
+
+                console.error({
+                    code: 'RATE_LIMIT_EXCEEDED',
+                    details: {
+                        remaining,
+                        resetInSecond: reset
+                    },
+                });
+                throw new Error('Transaction create limit exceeded!!');
+            }
+            throw new Error('Request Bloked!!');
+        }
 
         const user = await db.user.findUnique({
             where: {
@@ -37,7 +63,7 @@ export const createTransaction = async (data) => {
         });
 
         if (!account)
-            throw new error("Account not found!");
+            throw new Error("Account not found!");
 
         const balanceChanged = data.type === 'EXPENSE' ? -data.amount : data.amount;
         const newBalance = account.balance.toNumber() + balanceChanged;
