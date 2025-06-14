@@ -14,6 +14,7 @@
     "@arcjet/next": "^1.0.0-beta.8",
     "@bufbuild/protobuf": "^1.4.0",
     "@clerk/nextjs": "^6.18.0",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.0.1",
     "@opentelemetry/api": "^1.9.0",
     "@prisma/client": "6.0.1 --save-dev",

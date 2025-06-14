@@ -1,8 +1,8 @@
 "use client"
 
-import { createTransaction } from '@/actions/transaction'
-import { transactionSchema } from '@/app/lib/schema'
-import CreateAccountDrawer from '@/components/Create-account-drawer'
+import { createTransaction } from '@/actions/transaction';
+import { transactionSchema } from '@/app/lib/schema';
+import CreateAccountDrawer from '@/components/Create-account-drawer';
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import ReceiptScanner from './ReceiptScanner';
 
 const AddTransactionForm = ({ accounts, categories }) => {
     const router = useRouter();
@@ -37,12 +38,14 @@ const AddTransactionForm = ({ accounts, categories }) => {
             accountId: accounts.find(ac => ac.isDefault)?.id,
             date: new Date(),
             isReccuring: false,
+            category: ''
         }
     })
 
     const type = watch('type');
     const date = watch('date');
     const isReccuring = watch('isReccuring');
+    const category = watch('category');
 
     const filteredCategories = categories.filter(cat => cat.type === type);
 
@@ -75,16 +78,31 @@ const AddTransactionForm = ({ accounts, categories }) => {
             toast.error(error);
     }, [error])
 
+    const handleScanComplete = (scannedData) => {
+        if (scannedData) {
+            setValue('type', scannedData.type);
+            setValue('amount', scannedData.amount.toString());
+            setValue('date', new Date(scannedData.date));
+            if (scannedData.description) {
+                setValue('description', scannedData.description);
+            }
+            if (scannedData.category) {
+                setValue('category', scannedData.category)
+            }
+        }
+        console.log(scannedData)
+    };
+
     return (
         <form className='space-y-5' onSubmit={handleSubmit(onSubmit)}>
             {/* AI receipt scnaner */}
-
+            <ReceiptScanner onScanComplete={handleScanComplete} />
 
             <div className='space-y-2'>
                 <label className='text-sm font-medium'>Type</label>
                 <Select
                     onValueChange={(value) => setValue('type', value)}
-                    defaultValues={type}
+                    defaultValue={type}
                 >
                     <SelectTrigger className={'w-full'}>
                         <SelectValue placeholder="Select type" />
@@ -118,7 +136,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
                     <label className='text-sm font-medium'>Account</label>
                     <Select
                         onValueChange={(value) => setValue('accountId', value)}
-                        defaultValues={getValues('accountId')}
+                        defaultValue={getValues('accountId')}
                     >
                         <SelectTrigger className={'w-full'}>
                             <SelectValue placeholder="Select type" />
@@ -149,7 +167,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
                 <label className='text-sm font-medium'>Category</label>
                 <Select
                     onValueChange={(value) => setValue('category', value)}
-                    defaultValues={getValues('category')}
+                    value={category}
                 >
                     <SelectTrigger className={'w-full'}>
                         <SelectValue placeholder="Select category" />
@@ -226,7 +244,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
                         <label className='text-sm font-medium'>Recurring Interval</label>
                         <Select
                             onValueChange={(value) => setValue('reccuringInterval', value)}
-                            defaultValues={getValues('reccuringInterval')}
+                            defaultValue={getValues('reccuringInterval')}
                         >
                             <SelectTrigger className={'w-full'}>
                                 <SelectValue placeholder="Select Interval" />
