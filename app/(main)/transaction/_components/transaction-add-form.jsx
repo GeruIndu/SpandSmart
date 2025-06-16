@@ -1,6 +1,6 @@
 "use client"
 
-import { createTransaction } from '@/actions/transaction';
+import { createTransaction, updateTransaction } from '@/actions/transaction';
 import { transactionSchema } from '@/app/lib/schema';
 import CreateAccountDrawer from '@/components/Create-account-drawer';
 import { Button } from '@/components/ui/button'
@@ -12,15 +12,26 @@ import { Switch } from '@/components/ui/switch';
 import useFetch from '@/hooks/use-fetch';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { Calendar1Icon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Calendar1Icon, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import ReceiptScanner from './ReceiptScanner';
 
-const AddTransactionForm = ({ accounts, categories }) => {
+const AddTransactionForm = ({
+    accounts,
+    categories,
+    editMode = false,
+    initialData = null
+}) => {
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const editId = searchParams.get('edit');
+
+
+
     const {
         register,
         setValue,
@@ -31,15 +42,27 @@ const AddTransactionForm = ({ accounts, categories }) => {
         reset
     } = useForm({
         resolver: zodResolver(transactionSchema),
-        defaultValues: {
-            type: 'EXPENSE',
-            amount: '',
-            description: '',
-            accountId: accounts.find(ac => ac.isDefault)?.id,
-            date: new Date(),
-            isReccuring: false,
-            category: ''
-        }
+        defaultValues:
+            editMode && initialData ? {
+                type: initialData.type,
+                amount: initialData.amount.toString(),
+                description: initialData.description,
+                accountId: initialData.accountId,
+                category: initialData.category,
+                date: new Date(initialData.date),
+                isReccuring: initialData.isReccuring,
+                ...(initialData.reccuringInterval && {
+                    reccuringInterval: initialData.reccuringInterval
+                })
+            } : {
+                type: 'EXPENSE',
+                amount: '',
+                description: '',
+                accountId: accounts.find(ac => ac.isDefault)?.id,
+                date: new Date(),
+                isReccuring: false,
+                category: ''
+            }
     })
 
     const type = watch('type');
@@ -54,24 +77,30 @@ const AddTransactionForm = ({ accounts, categories }) => {
         loading: transactionLoading,
         fn: transactionFn,
         error
-    } = useFetch(createTransaction);
+    } = useFetch(editMode ? updateTransaction : createTransaction);
 
     const onSubmit = (data) => {
         const formData = {
             ...data,
             amount: parseFloat(data.amount)
         };
-        transactionFn(formData);
+
+        if (editMode)
+            transactionFn(editId, formData);
+        else
+            transactionFn(formData);
     };
 
     useEffect(() => {
         if (transactionData?.success && !transactionLoading) {
-            toast.success('Transaction created successfully..');
+            toast.success(
+                editMode ? "Transaction Updated successfully.." : 'Transaction created successfully..'
+            );
             reset();
             router.push(`/account/${transactionData.data.accountId}`)
         }
 
-    }, [transactionData, transactionLoading]);
+    }, [transactionData, transactionLoading, editMode]);
 
     useEffect(() => {
         if (error)
@@ -96,7 +125,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
     return (
         <form className='space-y-5' onSubmit={handleSubmit(onSubmit)}>
             {/* AI receipt scnaner */}
-            <ReceiptScanner onScanComplete={handleScanComplete} />
+            {!editMode && <ReceiptScanner onScanComplete={handleScanComplete} />}
 
             <div className='space-y-2'>
                 <label className='text-sm font-medium'>Type</label>
@@ -275,7 +304,16 @@ const AddTransactionForm = ({ accounts, categories }) => {
                     className={'w-1/2'}
                     type='submit'
                     disabled={transactionLoading}
-                >Create Transaction</Button>
+                >
+                    {
+                        transactionLoading ?
+                            <>
+                                <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                {editMode ? 'Updating...' : 'Creating...'}
+                            </>
+                            : editMode ? 'Update Transaction' : 'Create Transaction'
+                    }
+                </Button>
             </div>
         </form>
     )
