@@ -32,6 +32,8 @@ const TransactionTable = ({ transactions }) => {
     const [typeFilter, setTypeFilter] = useState("");
     const [reccuringFilter, setReccuringFilter] = useState("");
 
+    const [page, setPage] = useState(1);
+
     const RECCURING_INTERVALS = {
         DAILY: 'Daily',
         WEEKLY: 'Weekly',
@@ -103,9 +105,11 @@ const TransactionTable = ({ transactions }) => {
             }
             return (sortConfig.direction === 'asc') ? comparison : -comparison;
         })
-
+        setPage(1);
         return result;
     }, [transactions, searchTerm, reccuringFilter, typeFilter, sortConfig]);
+
+
 
     const {
         loading: deleteLoading,
@@ -138,6 +142,11 @@ const TransactionTable = ({ transactions }) => {
         setSearchTerm("");
         setSelectedIds([]);
         setTypeFilter("");
+    }
+
+    const setSelectedPage = (selectedPage) => {
+        if (selectedPage >= 1 && selectedPage <= Math.ceil(filteredTransactions.length / 15))
+            setPage(selectedPage);
     }
 
     return (
@@ -283,7 +292,7 @@ const TransactionTable = ({ transactions }) => {
                                     <TableCell colSpan={7} className={'text-center text-muted-foreground'}>No Transaction Found</TableCell>
                                 </TableRow>
                             ) : (
-                                filteredTransactions.map((transaction) => (
+                                filteredTransactions.slice(page * 15 - 15, page * 15).map((transaction) => (
                                     <TableRow key={transaction.id}>
                                         <TableCell>
                                             <Checkbox
@@ -369,6 +378,34 @@ const TransactionTable = ({ transactions }) => {
                         }
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Page Navigation */}
+            <div className='mx-auto px-4'>
+                {
+                    filteredTransactions.length > 0 && <div className='flex items-center flex-col sm:flex-row justify-center gap-5 mt-10 flex-wrap text-base'>
+                        <span
+                            className={`cursor-pointer ${page === 1 && 'opacity-0'}`}
+                            onClick={() => { setSelectedPage(page - 1) }}
+                        >
+                            ◀️
+                        </span>
+
+                        <div className='flex flex-wrap justify-center max-w-full overflow-x-auto gap-4'>
+                            {[...Array(Math.ceil(filteredTransactions.length / 15))].map((_, i) => (
+                                <span
+                                    key={i}
+                                    className={`cursor-pointer hover:underline hover:text-blue-500 px-2 py-1 ${page === (i + 1) ? 'bg-gray-300 rounded' : ''}`}
+                                    onClick={() => setSelectedPage(i + 1)}
+                                >
+                                    {i + 1}
+                                </span>
+                            ))}
+                        </div>
+
+                        <span className={`cursor-pointer ${page === Math.ceil(filteredTransactions.length / 15) && 'opacity-0'}`} onClick={() => setSelectedPage(page + 1)}>▶️</span>
+                    </div>
+                }
             </div>
         </div >
     )
